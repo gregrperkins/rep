@@ -1,0 +1,7 @@
+{
+    "name": "rep",
+    "version": "0.0.1",
+    "dependencies": {
+        "plovr": "git://github.com/Obvious/plovr.git#master"
+    }
+}
