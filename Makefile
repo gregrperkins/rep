@@ -28,6 +28,6 @@ docs: clean_docs | $(PLOVR_JAR)
 clean_docs:
 	rm -rf docs
 clean: clean_docs
-	rm -rf $(PLOVR_JAR)
+	rm -rf node_modules
 
 reinstall: clean $(PLOVR_JAR)

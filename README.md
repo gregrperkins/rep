@@ -1,5 +1,7 @@
 ## rep.js
 
+Closure Compiler optimized, disposable, reactive models
+
 **rep.js** is to be a reactive modeling engine compatible with the Google
 Closure Ecosystem ([Compiler][jscomp], [Library][goog], and [Templates][soy]).
 
