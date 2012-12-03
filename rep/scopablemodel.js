@@ -3,6 +3,7 @@ goog.provide('rep.InheritingAttribute');
 goog.provide('rep.OverridingAttribute');
 
 goog.require('rep.Model');
+goog.require('rep.DerivedAttribute');
 
 /**
  * A model that is created with a parent, whose value for a given attribute is
@@ -20,6 +21,7 @@ rep.ScopedModel = function(opt_parent) {
 };
 goog.inherits(rep.ScopedModel, rep.Model);
 
+
 /**
  * Returns the given attribute's value.
  * <br><br>
@@ -27,73 +29,19 @@ goog.inherits(rep.ScopedModel, rep.Model);
  * <br><br>
  * If the attribute is overriding, we check the parent only if it's undefined.
  * <br><br>
- * @override
  */
-rep.ScopedModel.prototype.get = function(attr) {
-  // TODO(gregp): DRY
-  if (attr instanceof rep.InheritingAttribute) {
-    if (goog.isDef(this.parent)) {
-      // Use a parent's value if it exists
-      var parentValue = this.parent.get(attr);
-      if (goog.isDef(parentValue)) {
-        return parentValue;
-      }
-    }
-
-    // Otherwise use our value
-    var myValue = goog.base(this, 'get', attr);
-    if (goog.isDef(myValue)) {
-      return myValue;
-    }
-
-    // Otherwise use the default value
-    var attributeDefault = attr.defaultValue;
-    if (goog.isDef(attributeDefault)) {
-      return attributeDefault;
-    }
-
-    // Otherwise undefined
-    return;
-
-  }
-
-  if (attr instanceof rep.OverridingAttribute) {
-    // If we have a defined value here, use it.
-    var myValue = goog.base(this, 'get', attr);
-    if (goog.isDef(myValue)) {
-      return myValue;
-    }
-
-    // Otherwise, if there is a parent and it has a value, use that
-    if (goog.isDef(this.parent)) {
-      var parentValue = this.parent.get(attr);
-      if (goog.isDef(parentValue)) {
-        return parentValue;
-      }
-    }
-
-    // Otherwise undefined
-    return;
-  }
-
-  var myValue = goog.base(this, 'get', attr);
-  if (goog.isDef(myValue)) {
-    return myValue;
-  }
-  return; // else undefined.
-};
-
 
 /**
  * An attribute whose value cascades from its parent whenever the parent
  *  has a defined value for it, even if it is defined at this scope.
  * @constructor
- * @extends {rep.Attribute}
+ * @extends {rep.DerivedAttribute}
  */
 rep.InheritingAttribute = function() {
-  goog.base(this);
+  rep.Attribute.call(this);
+  // Skip rep.DerivedAttribute as it would override our #compute() fns.
 };
-goog.inherits(rep.InheritingAttribute, rep.Attribute);
+goog.inherits(rep.InheritingAttribute, rep.DerivedAttribute);
 
 /**
  * Since the top level scope's value would be inherited by all of the
@@ -105,14 +53,66 @@ rep.InheritingAttribute.prototype.setDefault = function(defaultValue) {
   return this;
 };
 
+/**
+ * Computes the value given the scoped model.
+ *  parent > local > default > undefined
+ * @param {rep.ScopedModel} model
+ */
+rep.InheritingAttribute.prototype.compute = function(model) {
+  if (goog.isDef(model.parent)) {
+    // Use a parent's value if it exists
+    var parentValue = model.parent.get(this);
+    if (goog.isDef(parentValue)) {
+      return parentValue;
+    }
+  }
+
+  // Otherwise use our value
+  var localValue = model.getRaw(this);
+  if (goog.isDef(localValue)) {
+    return localValue;
+  }
+
+  // Otherwise use the default value
+  var myDefault = this.defaultValue;
+  if (goog.isDef(myDefault)) {
+    return myDefault;
+  }
+
+  // Otherwise undefined
+};
 
 /**
  * An attribute whose value inherits from its parent
  *   when it is undefined at the current scope.
  * @constructor
- * @extends {rep.Attribute}
+ * @extends {rep.DerivedAttribute}
  */
 rep.OverridingAttribute = function() {
-  goog.base(this);
+  rep.Attribute.call(this);
+  // Skip rep.DerivedAttribute as it would override our #compute() fns.
 };
-goog.inherits(rep.OverridingAttribute, rep.Attribute);
+goog.inherits(rep.OverridingAttribute, rep.DerivedAttribute);
+
+/**
+ * Computes the value given the scoped model.
+ *  local > parent > undefined
+ * @param {rep.ScopedModel} model
+ */
+rep.OverridingAttribute.prototype.compute = function(model) {
+  // If we have a defined value here, use it.
+  var localValue = model.getRaw(this);
+  if (goog.isDef(localValue)) {
+    return localValue;
+  }
+
+  // Otherwise, if there is a parent and it has a value, use that
+  if (goog.isDef(model.parent)) {
+    var parentValue = model.parent.get(this);
+    if (goog.isDef(parentValue)) {
+      return parentValue;
+    }
+  }
+
+  // Otherwise undefined
+};

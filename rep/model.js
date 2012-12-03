@@ -26,10 +26,22 @@ rep.Model = function() {
   goog.base(this);
 
   /**
+   * The values_ are those which are explicitly set on this model.
+   * Map attribute UIDs to values.
+   * @type {Object.<number, *>}
+   * @private
+   */
+  this.values_ = {};
+
+  /**
+   * Values calculated for DerivedAttributes. Should be recalculated
+   *  any time one of the dependencies changes... TODO(gregp)
+   * Derived values are used before explicitly set ones, to allow
+   *  for overrides.
    * Map attribute UIDs to values.
    * @type {Object.<number, *>}
    */
-  this.values_ = {};
+  this.derived_ = {};
 
   /**
    * Map closure object uid to attribute objects.
@@ -45,14 +57,14 @@ goog.inherits(rep.Model, rep.Emitter);
  * Initialize the reactive model:
  * For each property, determine which ones are attributes,
  *  and add them to this.attributes_.
- * @private
+ * @protected
  */
 rep.Model.prototype.init_ = function() {
   for (var key in this) {
-    var val = this[key];
-    if (val instanceof rep.Attribute) {
-      var uid = goog.getUid(val);
-      this.attributes_[uid] = val;
+    var attr = this[key];
+    if (attr instanceof rep.Attribute) {
+      var uid = attr.id_();
+      this.attributes_[uid] = attr;
     }
   }
 };
@@ -64,11 +76,24 @@ rep.Model.prototype.init_ = function() {
  * @return {*} value of the given attribute
  */
 rep.Model.prototype.get = function(attr) {
-    var uid = goog.getUid(attr);
-    if (attr instanceof rep.DerivedAttribute) {
-      this.values_[uid] = attr.compute(this);
-    }
-    return this.values_[uid];
+  var uid = attr.id_();
+  if (attr instanceof rep.DerivedAttribute) {
+    this.derived_[uid] = attr.compute(this);
+  }
+  var derived = this.derived_[uid];
+  return goog.isDef(derived) ? derived : this.values_[uid];
+};
+
+/**
+ * Getter for the raw locally set value. Returns either the last
+ *  value that was passed to set() for this attribute, or undefined
+ *  if it has never been set(), or has been unset()
+ * @param {rep.Attribute} attr, the attribute to get
+ * @return {*}
+ */
+rep.Model.prototype.getRaw = function(attr) {
+  var uid = attr.id_();
+  return this.values_[uid];
 };
 
 /**
@@ -80,7 +105,7 @@ rep.Model.prototype.get = function(attr) {
  * @param {*} value
  */
 rep.Model.prototype.set = function(attr, value) {
-  var uid = goog.getUid(attr);
+  var uid = attr.id_();
   var prior = this.values_[uid];
   this.values_[uid] = value;
   // TODO(gregp): bubble submodel events
@@ -199,7 +224,14 @@ rep.Model.prototype.onChange = function(attr, fn, opt_binder) {
  * @constructor
  */
 rep.Attribute = function() {
-  this.set = rep.Attribute.SET_EVENT + goog.getUid(this);
+  this.set = rep.Attribute.SET_EVENT + this.id_();
+};
+
+/**
+ * Get a unique identifier for this attribute
+ */
+rep.Attribute.prototype.id_ = function() {
+  return goog.getUid(this);
 };
 
 /** @type {!string} */

@@ -44,6 +44,7 @@ var test_rep_test_Locality__reactivity = function() {
 
   key = sf.onSet(sf.drinkingAge, incrFn);
   ca.set(ca.drinkingAge, 21);
+  assertEquals(21, sf.get(sf.drinkingAge));
   assertEquals(calls, 2);
   sf.unlistenByKey(key);
 };
@@ -69,6 +70,6 @@ var test_rep_test_Locality__defaults = function() {
   sj.set(sj.freeEnergy, false);
   assertTrue(sj.get(sj.freeEnergy));
 
-  // In another state, of course, similar restraint.
+  // In another state, of course, reality prevails.
   assertFalse(mo.get(mo.freeEnergy));
 };
