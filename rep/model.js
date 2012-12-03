@@ -65,8 +65,45 @@ rep.Model.prototype.init_ = function() {
     if (attr instanceof rep.Attribute) {
       var uid = attr.id_();
       this.attributes_[uid] = attr;
+      if (attr instanceof rep.DerivedAttribute) {
+        this.recompute_(attr);
+      }
     }
   }
+};
+
+/**
+ * Recompute the given DerivedAttribute.
+ * Also, deal with any of its subscription changes.
+ * @param {rep.DerivedAttribute} attr
+ * @protected
+ */
+rep.Model.prototype.recompute_ = function(attr) {
+  var uid = attr.id_();
+  var getFn = this.get;
+  var getRawFn = this.getRaw;
+  var setFn = this.set;
+  var recomputeFn = goog.bind(this.recompute_, this, attr);
+  this.set = function() {
+    throw 'Cannot set during a computation...'; // TODO(gregp)
+  }
+  this.get = function(dep) {
+    var val = getFn.call(this, dep);
+    // TODO(gregp): only recompute if val changes
+    this.onSet(dep, recomputeFn, attr);
+    return val;
+  }
+  this.getRaw = function(dep) {
+    var val = getRawFn.call(this, dep);
+    // TODO(gregp): only recompute if val changes
+    this.onSet(dep, recomputeFn, attr);
+    return val;
+  }
+  this.off(null, null, attr);
+  this.derived_[uid] = attr.compute(this);
+  this.get = getFn;
+  this.getRaw = getRawFn;
+  this.set = setFn;
 };
 
 /**
@@ -77,9 +114,6 @@ rep.Model.prototype.init_ = function() {
  */
 rep.Model.prototype.get = function(attr) {
   var uid = attr.id_();
-  if (attr instanceof rep.DerivedAttribute) {
-    this.derived_[uid] = attr.compute(this);
-  }
   var derived = this.derived_[uid];
   return goog.isDef(derived) ? derived : this.values_[uid];
 };
@@ -264,3 +298,10 @@ rep.DerivedAttribute = function(computationFn) {
   this.compute = computationFn;
 };
 goog.inherits(rep.DerivedAttribute, rep.Attribute);
+
+/**
+ * Register any necessary subscriptions on the model
+ */
+rep.DerivedAttribute.prototype.subscribe = function(model) {
+  // Do nothing in the base class...
+};

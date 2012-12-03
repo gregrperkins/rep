@@ -14,12 +14,25 @@ goog.require('rep.DerivedAttribute');
  * @extends {rep.Model}
  */
 rep.ScopedModel = function(opt_parent) {
-  goog.base(this);
   if (goog.isDefAndNotNull(opt_parent)) {
     this.parent = opt_parent;
   }
+
+  goog.base(this);
 };
 goog.inherits(rep.ScopedModel, rep.Model);
+
+rep.ScopedModel.prototype.recompute_ = function(attr) {
+  if (this.parent && (
+        attr instanceof rep.InheritingAttribute ||
+        attr instanceof rep.OverridingAttribute
+      )) {
+    this.parent.off(null, null, attr);
+    var recomputeFn = goog.bind(this.recompute_, this, attr);
+    this.parent.onSet(attr, recomputeFn, attr);
+  }
+  return goog.base(this, 'recompute_', attr);
+};
 
 
 /**
