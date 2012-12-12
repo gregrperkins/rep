@@ -40,14 +40,26 @@ rep.Model = function() {
    *  for overrides.
    * Map attribute UIDs to values.
    * @type {Object.<number, *>}
+   * @protected
    */
   this.derived_ = {};
 
   /**
    * Map closure object uid to attribute objects.
    * @type {Object.<number, rep.Attribute>}
+   * @private
    */
   this.attributes_ = {};
+
+  /**
+   * Map attribute id to the function most recently used to
+   *  recompute it. The function is generally this.recompute_,
+   *  bound onto the model which it is recomputing on.
+   * This is useful so we can unlisten based on the function.
+   * @type {Object.<number, function(this: rep.Model)>}
+   * @protected
+   */
+  this.recomputeFn_ = {};
 
   this.init_();
 };
@@ -79,11 +91,20 @@ rep.Model.prototype.init_ = function() {
  * @protected
  */
 rep.Model.prototype.recompute_ = function(attr) {
+  console.log('Model recomputing', this, attr);
   var uid = attr.id_();
+  if (this.recomputeFn_[uid]) {
+    this.off(null, this.recomputeFn_[uid], attr);
+  }
+  // var recomputeFn = goog.bind(this.recompute_, this, attr);
+      var recomputeFn = this.recomputeFn_[uid] = goog.bind(function() {
+        console.log('Recomputing', attr, this);
+        this.recompute_(attr);
+      }, this);
+
   var getFn = this.get;
   var getRawFn = this.getRaw;
   var setFn = this.set;
-  var recomputeFn = goog.bind(this.recompute_, this, attr);
   this.set = function() {
     throw 'Cannot set during a computation...'; // TODO(gregp)
   }
@@ -99,7 +120,6 @@ rep.Model.prototype.recompute_ = function(attr) {
     this.onSet(dep, recomputeFn, attr);
     return val;
   }
-  this.off(null, null, attr);
   this.derived_[uid] = attr.compute(this);
   this.get = getFn;
   this.getRaw = getRawFn;

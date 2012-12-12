@@ -55,6 +55,8 @@ var test_rep_test_Locality__defaults = function() {
   var sf = new rep.test.City("San Francisco", ca);
   var sj = new rep.test.City("San Jose", ca);
 
+  console.warn('Construction all done!');
+
   // Make sure the defaults are set...
   assertFalse(sf.get(sf.freeEnergy));
   assertFalse(ca.get(ca.freeEnergy));

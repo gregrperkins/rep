@@ -23,15 +23,20 @@ rep.ScopedModel = function(opt_parent) {
 goog.inherits(rep.ScopedModel, rep.Model);
 
 rep.ScopedModel.prototype.recompute_ = function(attr) {
+  var uid = attr.id_();
+  var oldRecomputeFn = this.recomputeFn_[uid];
+  return goog.base(this, 'recompute_', attr);
+
+  console.log('ScopedModel recomputing', this.parent, this, attr);
   if (this.parent && (
         attr instanceof rep.InheritingAttribute ||
         attr instanceof rep.OverridingAttribute
       )) {
-    this.parent.off(null, null, attr);
-    var recomputeFn = goog.bind(this.recompute_, this, attr);
+    this.parent.off(null, oldRecomputeFn, attr);
+    var recomputeFn = this.recomputeFn_[uid];
+    console.log('Adding recompute handler on ', this.parent, this);
     this.parent.onSet(attr, recomputeFn, attr);
   }
-  return goog.base(this, 'recompute_', attr);
 };
 
 

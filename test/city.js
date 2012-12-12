@@ -13,6 +13,7 @@ goog.require('rep.test.Locality');
 rep.test.City = function(name, state, opt_callsSodaPop, opt_drinkingAge) {
   goog.base(this, state, name, opt_callsSodaPop, opt_drinkingAge);
   this.set(this.state, state);
+  // console.log('rep.test.City', this.parent, this);
 };
 goog.inherits(rep.test.City, rep.test.Locality);
 
